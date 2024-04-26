@@ -28,7 +28,7 @@ object Kafka2KafkaJob {
     try {
       val sourceStream = spark.readStream
         .format("kafka")
-        .option("subscribe", "input-topic")
+        .option("subscribe", "source-topic")
         .option("kafka.bootstrap.servers", "kafka.broker.zero:9092")
         .load()
 
@@ -46,7 +46,7 @@ object Kafka2KafkaJob {
 
       val streamingQuery = processedEvents.writeStream
         .format("kafka")
-        .option("topic", "output-topic")
+        .option("topic", "target-topic")
         .option("kafka.bootstrap.servers", "kafka.broker.zero:9092")
         .option("checkpointLocation", "/tmp/checkpoint")
         .trigger(Trigger.ProcessingTime(Duration.ofSeconds(1).toMillis))
