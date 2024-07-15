@@ -8,34 +8,7 @@ package io.openlineage.spark.agent.lifecycle;
 import io.openlineage.client.OpenLineage;
 import io.openlineage.client.OpenLineage.Dataset;
 import io.openlineage.client.OpenLineage.InputDataset;
-import io.openlineage.spark.agent.lifecycle.plan.AlterTableAddColumnsCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.AlterTableAddPartitionCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.AlterTableRenameCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.AlterTableSetLocationCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.BigQueryNodeInputVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.BigQueryNodeOutputVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.CreateDataSourceTableAsSelectCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.CreateDataSourceTableCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.CreateHiveTableAsSelectCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.CreateTableCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.DropTableCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.ExternalRDDVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.HiveTableRelationVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.InsertIntoDataSourceDirVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.InsertIntoDataSourceVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.InsertIntoDirVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.InsertIntoHadoopFsRelationVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.InsertIntoHiveDirVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.InsertIntoHiveTableVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.KafkaRelationVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.KustoRelationVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.LoadDataCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.LogicalRDDVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.OptimizedCreateHiveTableAsSelectCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.SqlDWDatabricksVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.SqlExecutionRDDVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.TruncateTableCommandVisitor;
-import io.openlineage.spark.agent.lifecycle.plan.WriteToDataSourceV2Visitor;
+import io.openlineage.spark.agent.lifecycle.plan.*;
 import io.openlineage.spark.agent.util.BigQueryUtils;
 import io.openlineage.spark.api.DatasetFactory;
 import io.openlineage.spark.api.OpenLineageContext;
@@ -83,6 +56,7 @@ abstract class BaseVisitorFactory implements VisitorFactory {
       inputVisitors.add(new SqlExecutionRDDVisitor(context));
     }
     inputVisitors.add(new ExternalRDDVisitor(context));
+    inputVisitors.add(new StreamingDataSourceV2RelationVisitor(context));
     return inputVisitors;
   }
 
