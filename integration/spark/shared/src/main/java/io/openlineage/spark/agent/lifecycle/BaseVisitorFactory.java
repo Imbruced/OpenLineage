@@ -56,7 +56,6 @@ abstract class BaseVisitorFactory implements VisitorFactory {
       inputVisitors.add(new SqlExecutionRDDVisitor(context));
     }
     inputVisitors.add(new ExternalRDDVisitor(context));
-    inputVisitors.add(new StreamingDataSourceV2RelationVisitor(context));
     return inputVisitors;
   }
 
@@ -96,7 +95,6 @@ abstract class BaseVisitorFactory implements VisitorFactory {
     list.add(new TruncateTableCommandVisitor(context));
     list.add(new AlterTableSetLocationCommandVisitor(context));
     list.add(new AlterTableAddPartitionCommandVisitor(context));
-    list.add(new WriteToDataSourceV2Visitor(context));
     return list;
   }
 }
