@@ -289,10 +289,8 @@ public class SparkContainerUtils {
     }
   }
 
-  static void consumeToArray(org.testcontainers.containers.output.OutputFrame of, List<String> output) {
+  static void consumeToArray(
+      org.testcontainers.containers.output.OutputFrame of, List<String> output) {
     output.add(of.getUtf8String());
   }
 }
-
-
-
