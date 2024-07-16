@@ -288,4 +288,11 @@ public class SparkContainerUtils {
       throw new RuntimeException(ioe);
     }
   }
+
+  static void consumeToArray(org.testcontainers.containers.output.OutputFrame of, List<String> output) {
+    output.add(of.getUtf8String());
+  }
 }
+
+
+
