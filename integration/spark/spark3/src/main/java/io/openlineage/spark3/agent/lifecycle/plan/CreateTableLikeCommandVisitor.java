@@ -5,12 +5,18 @@
 
 package io.openlineage.spark3.agent.lifecycle.plan;
 
+import static java.util.Collections.singletonList;
+
 import io.openlineage.client.OpenLineage;
 import io.openlineage.client.utils.DatasetIdentifier;
 import io.openlineage.spark.agent.util.PathUtils;
 import io.openlineage.spark.agent.util.ScalaConversionUtils;
 import io.openlineage.spark.api.OpenLineageContext;
 import io.openlineage.spark.api.QueryPlanVisitor;
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.scheduler.SparkListenerEvent;
 import org.apache.spark.scheduler.SparkListenerJobEnd;
@@ -20,13 +26,6 @@ import org.apache.spark.sql.catalyst.catalog.SessionCatalog;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.apache.spark.sql.execution.command.CreateTableLikeCommand;
 import org.apache.spark.sql.execution.ui.SparkListenerSQLExecutionEnd;
-
-import java.net.URI;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static java.util.Collections.singletonList;
 
 /**
  * {@link LogicalPlan} visitor that matches an {@link CreateTableLikeCommand} and extracts the
