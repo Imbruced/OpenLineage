@@ -38,11 +38,10 @@ import io.openlineage.spark.agent.lifecycle.plan.TruncateTableCommandVisitor;
 import io.openlineage.spark.agent.util.BigQueryUtils;
 import io.openlineage.spark.api.DatasetFactory;
 import io.openlineage.spark.api.OpenLineageContext;
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
-import scala.PartialFunction;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import scala.PartialFunction;
 
 abstract class BaseVisitorFactory implements VisitorFactory {
 
