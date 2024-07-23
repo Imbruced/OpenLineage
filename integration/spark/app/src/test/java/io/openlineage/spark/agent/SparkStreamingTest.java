@@ -5,6 +5,13 @@
 
 package io.openlineage.spark.agent;
 
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.expr;
+import static org.apache.spark.sql.functions.from_json;
+import static org.apache.spark.sql.functions.from_unixtime;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -12,6 +19,29 @@ import com.sun.net.httpserver.HttpServer;
 import io.openlineage.client.OpenLineage;
 import io.openlineage.client.OpenLineage.RunEvent;
 import io.openlineage.client.OpenLineageClientUtils;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -44,37 +74,6 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 import org.testcontainers.utility.DockerImageName;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import static org.apache.spark.sql.functions.col;
-import static org.apache.spark.sql.functions.expr;
-import static org.apache.spark.sql.functions.from_json;
-import static org.apache.spark.sql.functions.from_unixtime;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 @Tag("integration-test")
@@ -249,7 +248,8 @@ class SparkStreamingTest {
             assertEquals(1, event.getOutputs().size());
             assertEquals(kafkaContainer.targetTopic, event.getOutputs().get(0).getName());
 
-            assertTrue(event.getOutputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
+            assertTrue(
+                event.getOutputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
 
             OpenLineage.SchemaDatasetFacet outputSchema =
                 event.getOutputs().get(0).getFacets().getSchema();
@@ -398,7 +398,8 @@ class SparkStreamingTest {
           event -> {
             assertEquals(1, event.getOutputs().size());
             assertEquals("openlineage.public.test", event.getOutputs().get(0).getName());
-            assertTrue(event.getOutputs().get(0).getNamespace().startsWith("postgres://prod-cluster"));
+            assertTrue(
+                event.getOutputs().get(0).getNamespace().startsWith("postgres://prod-cluster"));
           });
 
       postgresContainer.stop();
@@ -408,7 +409,8 @@ class SparkStreamingTest {
 
     @Test
     @EnabledIfSystemProperty(named = SPARK_VERSION, matches = SPARK_3_OR_ABOVE)
-    void testKafkaClusterResolveNamespace() throws IOException, TimeoutException, StreamingQueryException {
+    void testKafkaClusterResolveNamespace()
+        throws IOException, TimeoutException, StreamingQueryException {
       List<KafkaTestContainer> kafkaBrokers = setupKafkaCluster(3);
 
       OpenLineageEndpointHandler handler = new OpenLineageEndpointHandler();
@@ -419,27 +421,37 @@ class SparkStreamingTest {
       spark.sparkContext().setLogLevel("WARN");
 
       spark
-        .readStream()
-        .format("kafka")
-        .option("subscribe", kafkaBrokers.get(0).getSourceTopic())
-        .option("kafka.bootstrap.servers", kafkaBrokers.stream().map(KafkaTestContainer::getBootstrapServers).collect(Collectors.joining(",")))
-        .option("startingOffsets", "earliest")
-        .load()
-        .transform(this::processKafkaTopic)
-        .writeStream().format("console").start()
-        .awaitTermination(Duration.ofSeconds(10).toMillis());
+          .readStream()
+          .format("kafka")
+          .option("subscribe", kafkaBrokers.get(0).getSourceTopic())
+          .option(
+              "kafka.bootstrap.servers",
+              kafkaBrokers.stream()
+                  .map(KafkaTestContainer::getBootstrapServers)
+                  .collect(Collectors.joining(",")))
+          .option("startingOffsets", "earliest")
+          .load()
+          .transform(this::processKafkaTopic)
+          .writeStream()
+          .format("console")
+          .start()
+          .awaitTermination(Duration.ofSeconds(10).toMillis());
 
-      List<RunEvent> events = handler.eventsContainer.stream().
-              map(OpenLineageClientUtils::runEventFromJson).
-              collect(Collectors.toList());
+      List<RunEvent> events =
+          handler.eventsContainer.stream()
+              .map(OpenLineageClientUtils::runEventFromJson)
+              .collect(Collectors.toList());
 
       assertTrue(events.stream().anyMatch(x -> !x.getInputs().isEmpty()));
 
-      events.stream().filter(x -> !x.getInputs().isEmpty()).forEach(
+      events.stream()
+          .filter(x -> !x.getInputs().isEmpty())
+          .forEach(
               event -> {
                 assertEquals(1, event.getInputs().size());
-                assertTrue(event.getInputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
-      });
+                assertTrue(
+                    event.getInputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
+              });
     }
 
     private HttpServer createHttpServer(HttpHandler handler) throws IOException {
@@ -512,31 +524,32 @@ class SparkStreamingTest {
       Integer internalTopicsRf = 2;
 
       GenericContainer zookeeper =
-              new GenericContainer<>(DockerImageName.parse("confluentinc/cp-zookeeper")
-                      .withTag("7.6.1"))
-                      .withNetwork(network)
-                      .withNetworkAliases("zookeeper")
-                      .withEnv("ZOOKEEPER_CLIENT_PORT", String.valueOf(KafkaContainer.ZOOKEEPER_PORT));
+          new GenericContainer<>(
+                  DockerImageName.parse("confluentinc/cp-zookeeper").withTag("7.6.1"))
+              .withNetwork(network)
+              .withNetworkAliases("zookeeper")
+              .withEnv("ZOOKEEPER_CLIENT_PORT", String.valueOf(KafkaContainer.ZOOKEEPER_PORT));
 
       List<KafkaContainer> brokers =
-              IntStream
-                      .range(0, numberOfBrokers)
-                      .mapToObj(brokerNum -> new KafkaContainer(
-                              DockerImageName.
-                                      parse("confluentinc/cp-kafka").
-                                      withTag(confluentPlatformVersion))
-                              .withNetwork(network)
-                              .withNetworkAliases("broker-" + brokerNum)
-                              .dependsOn(zookeeper)
-                              .withExternalZookeeper("zookeeper:" + KafkaContainer.ZOOKEEPER_PORT)
-                              .withEnv("KAFKA_BROKER_ID", brokerNum + "")
-                              .withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", internalTopicsRf + "")
-                              .withEnv("KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS", internalTopicsRf + "")
-                              .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", internalTopicsRf + "")
-                              .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", internalTopicsRf + "")
-                              .withStartupTimeout(Duration.ofMinutes(1))
-                      )
-                      .collect(Collectors.toList());
+          IntStream.range(0, numberOfBrokers)
+              .mapToObj(
+                  brokerNum ->
+                      new KafkaContainer(
+                              DockerImageName.parse("confluentinc/cp-kafka")
+                                  .withTag(confluentPlatformVersion))
+                          .withNetwork(network)
+                          .withNetworkAliases("broker-" + brokerNum)
+                          .dependsOn(zookeeper)
+                          .withExternalZookeeper("zookeeper:" + KafkaContainer.ZOOKEEPER_PORT)
+                          .withEnv("KAFKA_BROKER_ID", brokerNum + "")
+                          .withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", internalTopicsRf + "")
+                          .withEnv("KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS", internalTopicsRf + "")
+                          .withEnv(
+                              "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR",
+                              internalTopicsRf + "")
+                          .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", internalTopicsRf + "")
+                          .withStartupTimeout(Duration.ofMinutes(1)))
+              .collect(Collectors.toList());
 
       brokers.forEach(KafkaContainer::start);
 
@@ -544,17 +557,23 @@ class SparkStreamingTest {
       String kafkaSourceTopic = "source-topic-" + kafkaTopicPrefix;
       String kafkaTargetTopic = "target-topic-" + kafkaTopicPrefix;
 
-      String bootstrapServers = brokers.
-              stream().
-              map(KafkaContainer::getBootstrapServers).
-              collect(Collectors.joining(","));
+      String bootstrapServers =
+          brokers.stream()
+              .map(KafkaContainer::getBootstrapServers)
+              .collect(Collectors.joining(","));
 
       createTopics(bootstrapServers, Arrays.asList(kafkaSourceTopic, kafkaTargetTopic));
       populateTopic(bootstrapServers, kafkaSourceTopic);
 
-      return brokers.stream().map(
-                kafkaContainer -> new KafkaTestContainer(kafkaContainer, kafkaSourceTopic, kafkaTargetTopic, kafkaContainer.getBootstrapServers())
-        ).collect(Collectors.toList());
+      return brokers.stream()
+          .map(
+              kafkaContainer ->
+                  new KafkaTestContainer(
+                      kafkaContainer,
+                      kafkaSourceTopic,
+                      kafkaTargetTopic,
+                      kafkaContainer.getBootstrapServers()))
+          .collect(Collectors.toList());
     }
 
     private SparkSession createSparkSession(Integer httpServerPort) {
@@ -580,8 +599,7 @@ class SparkStreamingTest {
           .config("spark.openlineage.transport.url", "http://localhost:" + httpServerPort)
           .config("spark.openlineage.facets.disabled", "[spark_unknown;]")
           .config("spark.openlineage.dataset.namespaceResolvers.prod-cluster.type", "hostList")
-          .config(
-                  "spark.openlineage.dataset.namespaceResolvers.prod-cluster.hosts", "[localhost]")
+          .config("spark.openlineage.dataset.namespaceResolvers.prod-cluster.hosts", "[localhost]")
           .getOrCreate();
     }
 
