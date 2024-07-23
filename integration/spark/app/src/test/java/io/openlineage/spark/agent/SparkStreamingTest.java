@@ -74,6 +74,7 @@ import static org.apache.spark.sql.functions.expr;
 import static org.apache.spark.sql.functions.from_json;
 import static org.apache.spark.sql.functions.from_unixtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 @Tag("integration-test")
@@ -232,12 +233,11 @@ class SparkStreamingTest {
       List<SchemaRecord> expectedOutputSchema =
           Arrays.asList(new SchemaRecord("key", "binary"), new SchemaRecord("value", "string"));
 
-      System.out.println("sss");
       nonEmptyInputEvents.forEach(
           event -> {
             assertEquals(1, event.getInputs().size());
             assertEquals(kafkaContainer.sourceTopic, event.getInputs().get(0).getName());
-            assertEquals("kafka://" + bootstrapServers, event.getInputs().get(0).getNamespace());
+            assertTrue(event.getInputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
 
             OpenLineage.SchemaDatasetFacet inputSchema =
                 event.getInputs().get(0).getFacets().getSchema();
@@ -248,7 +248,8 @@ class SparkStreamingTest {
 
             assertEquals(1, event.getOutputs().size());
             assertEquals(kafkaContainer.targetTopic, event.getOutputs().get(0).getName());
-            assertEquals("kafka://" + bootstrapServers, event.getOutputs().get(0).getNamespace());
+
+            assertTrue(event.getOutputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
 
             OpenLineage.SchemaDatasetFacet outputSchema =
                 event.getOutputs().get(0).getFacets().getSchema();
@@ -306,7 +307,7 @@ class SparkStreamingTest {
           event -> {
             assertEquals(1, event.getInputs().size());
             assertEquals(kafkaContainer.sourceTopic, event.getInputs().get(0).getName());
-            assertEquals("kafka://" + bootstrapServers, event.getInputs().get(0).getNamespace());
+            assertTrue(event.getInputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
           });
 
       List<RunEvent> outputEvents =
@@ -385,7 +386,7 @@ class SparkStreamingTest {
           event -> {
             assertEquals(1, event.getInputs().size());
             assertEquals(kafkaContainer.sourceTopic, event.getInputs().get(0).getName());
-            assertEquals("kafka://" + bootstrapServers, event.getInputs().get(0).getNamespace());
+            assertTrue(event.getInputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
           });
 
       List<RunEvent> outputEvents =
@@ -397,8 +398,7 @@ class SparkStreamingTest {
           event -> {
             assertEquals(1, event.getOutputs().size());
             assertEquals("openlineage.public.test", event.getOutputs().get(0).getName());
-            assertEquals(
-                postgresContainer.getNamespace(), event.getOutputs().get(0).getNamespace());
+            assertTrue(event.getOutputs().get(0).getNamespace().startsWith("postgres://prod-cluster"));
           });
 
       postgresContainer.stop();
@@ -427,15 +427,19 @@ class SparkStreamingTest {
         .load()
         .transform(this::processKafkaTopic)
         .writeStream().format("console").start()
-        .awaitTermination(Duration.ofSeconds(20).toMillis());
+        .awaitTermination(Duration.ofSeconds(10).toMillis());
 
       List<RunEvent> events = handler.eventsContainer.stream().
               map(OpenLineageClientUtils::runEventFromJson).
               collect(Collectors.toList());
 
-      System.out.println("sssss");
+      assertTrue(events.stream().anyMatch(x -> !x.getInputs().isEmpty()));
 
-
+      events.stream().filter(x -> !x.getInputs().isEmpty()).forEach(
+              event -> {
+                assertEquals(1, event.getInputs().size());
+                assertTrue(event.getInputs().get(0).getNamespace().startsWith("kafka://prod-cluster:"));
+      });
     }
 
     private HttpServer createHttpServer(HttpHandler handler) throws IOException {
@@ -575,6 +579,9 @@ class SparkStreamingTest {
           .config("spark.openlineage.transport.type", "http")
           .config("spark.openlineage.transport.url", "http://localhost:" + httpServerPort)
           .config("spark.openlineage.facets.disabled", "[spark_unknown;]")
+          .config("spark.openlineage.dataset.namespaceResolvers.prod-cluster.type", "hostList")
+          .config(
+                  "spark.openlineage.dataset.namespaceResolvers.prod-cluster.hosts", "[localhost]")
           .getOrCreate();
     }
 

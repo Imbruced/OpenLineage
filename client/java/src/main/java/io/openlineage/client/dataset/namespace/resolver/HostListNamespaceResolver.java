@@ -29,8 +29,6 @@ public class HostListNamespaceResolver implements DatasetNamespaceResolver {
       return namespace;
     }
 
-    System.out.println("ssssss");
-
     return config.getHosts().stream()
         .filter(h -> StringUtils.containsIgnoreCase(namespace, h))
         .findAny()

@@ -16,7 +16,6 @@ import org.apache.spark.sql.connector.read.streaming.Offset;
 import org.apache.spark.sql.execution.datasources.v2.StreamingDataSourceV2Relation;
 import scala.Option;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -90,19 +89,7 @@ final class KafkaMicroBatchStreamStrategy extends StreamStrategy {
 
   private List<InputDataset> generateInputDatasets(
       Optional<String> bootstrapServers, Collection<String> topics) {
-    String server = bootstrapServers
-                    .map(
-                            str -> {
-                              if (!str.matches("\\w+://.*")) {
-                                return "PLAINTEXT://" + str;
-                              } else {
-                                return str;
-                              }
-                            })
-                    .map(str -> URI.create(str.split(",")[0]))
-                    .map(uri -> uri.getHost() + ":" + uri.getPort())
-                    .orElse("");
-    String namespace = "kafka://" + server;
+    String namespace = KafkaBootstrapServerResolver.resolve(bootstrapServers);
 
     List<InputDataset> datasets = new ArrayList<>();
     for (String topic : topics) {
