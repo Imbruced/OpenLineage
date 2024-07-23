@@ -49,12 +49,6 @@ final class KafkaMicroBatchStreamStrategy extends StreamStrategy {
       return Collections.emptyList();
     }
 
-//    HostListNamespaceResolverConfig resolverConfig = new HostListNamespaceResolverConfig();
-//     TODO fix this transformation
-//    resolverConfig.setHosts(Arrays.stream(bootstrapServersOpt.get().split(",")).collect(Collectors.toList()));
-
-//    DatasetNamespaceResolver namespaceResolver = new HostListNamespaceResolver("kafka", resolverConfig);
-
     return generateInputDatasets(bootstrapServersOpt, topics);
   }
 
