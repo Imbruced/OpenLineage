@@ -8,8 +8,8 @@ repositories {
     mavenCentral()
 }
 
-val downloadTaskVersion: String = "5.5.0"
-val lombokPluginVersion: String = "8.4"
+val downloadTaskVersion: String = "5.6.0"
+val lombokPluginVersion: String = "8.6"
 val shadowPluginVersion: String = "8.1.1"
 val spotlessVersion: String = "6.13.0"
 
@@ -21,6 +21,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+    implementation("org.javassist:javassist:3.30.2-GA")
 }
 
 gradlePlugin {

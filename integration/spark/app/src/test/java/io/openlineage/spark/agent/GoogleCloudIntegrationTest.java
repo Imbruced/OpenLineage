@@ -46,6 +46,8 @@ import org.mockserver.integration.ClientAndServer;
 @Tag("google-cloud")
 @Slf4j
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
+// TODO: Please note the test remains disabled for Spark 4.0 for now (no applicable connector
+// version available)
 class GoogleCloudIntegrationTest {
   private static final String PROJECT_ID =
       Optional.ofNullable(System.getenv("GCLOUD_PROJECT_ID")).orElse("openlineage-ci");
@@ -66,7 +68,11 @@ class GoogleCloudIntegrationTest {
       String.format("spark_%s", SparkContainerProperties.SPARK_VERSION).replace(".", "_");
   private static final String SCALA_VERSION =
       String.format("scala_%s", SparkContainerProperties.SCALA_BINARY_VERSION).replace(".", "_");
-  private static final String VERSION_NAME = String.format("%s_%s", SPARK_VERSION, SCALA_VERSION);
+
+  private static final String JAVA_VERSION =
+      String.format("java_%s", System.getProperty("java.version").replace(".", "_"));
+  private static final String VERSION_NAME =
+      String.format("%s_%s_%s", JAVA_VERSION, SPARK_VERSION, SCALA_VERSION);
 
   private static SparkSession spark;
   private static ClientAndServer mockServer;
@@ -143,6 +149,7 @@ class GoogleCloudIntegrationTest {
     replacements.put("{PROJECT_ID}", PROJECT_ID);
     replacements.put("{DATASET_ID}", DATASET_ID);
     replacements.put("{BUCKET_NAME}", BUCKET_NAME);
+    replacements.put("{JAVA_VERSION}", JAVA_VERSION);
     replacements.put("{SPARK_VERSION}", SPARK_VERSION);
     replacements.put("{SCALA_VERSION}", SCALA_VERSION);
 
@@ -192,6 +199,7 @@ class GoogleCloudIntegrationTest {
     replacements.put("{PROJECT_ID}", PROJECT_ID);
     replacements.put("{DATASET_ID}", DATASET_ID);
     replacements.put("{BUCKET_NAME}", BUCKET_NAME);
+    replacements.put("{JAVA_VERSION}", JAVA_VERSION);
     replacements.put("{SPARK_VERSION}", SPARK_VERSION);
     replacements.put("{SCALA_VERSION}", SCALA_VERSION);
 
@@ -224,8 +232,13 @@ class GoogleCloudIntegrationTest {
   void testRddWriteToBucket() throws IOException {
     String sparkVersion = String.format("spark-%s", SparkContainerProperties.SPARK_VERSION);
     String scalaVersion = String.format("scala-%s", SparkContainerProperties.SCALA_BINARY_VERSION);
+    String javaVersion = String.format("java-%s", JAVA_VERSION);
     URI baseUri =
-        BUCKET_URI.resolve("rdd-test/").resolve(sparkVersion + "/").resolve(scalaVersion + "/");
+        BUCKET_URI
+            .resolve("rdd-test/")
+            .resolve(sparkVersion + "/")
+            .resolve(scalaVersion + "/")
+            .resolve(javaVersion + "/");
 
     log.info("This path will be used for this test: {}", baseUri);
 
